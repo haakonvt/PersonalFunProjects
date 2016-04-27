@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-dt = 0.1
+dt = 0.05
 v  = 1
 N  = int(round(1/dt))
 
@@ -102,9 +102,13 @@ if raw_input("Hit 'enter' to skip plot") != '':
     plt.plot(r1[:,0], r1[:,1],'o-')
     plt.plot(r1fe[:,0], r1fe[:,1],'o-')
     plt.plot(r2[:,0], r2[:,1],'o-')
+    plt.plot(r2fe[:,0], r2fe[:,1],'o-')
     plt.plot(r3[:,0], r3[:,1],'o-')
+    plt.plot(r3fe[:,0], r3fe[:,1],'o-')
     plt.plot(r4[:,0], r4[:,1],'o-')
-    plt.legend(["r1","r1 FE","r2","r3","r4"])
+    plt.plot(r4fe[:,0], r4fe[:,1],'o-')
+    plt.legend(["r1","r1 FE","r2","r2 FE","r3","r3 FE","r4","r4 FE"])
+    plt.axis('equal')
     plt.show()
 
     plt.plot(t,vr)
