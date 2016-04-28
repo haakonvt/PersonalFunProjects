@@ -75,9 +75,6 @@ for i in range(N-1):
 
     # ----------------------------------------
     # Runge Kutta of fourth order
-    # Second order: r_n+1 = r_n + 0.5*h*(k1 + k2)
-    # k1 = slope at r_n, k2 = slope at r_n+1 with FE
-
     k1R1 = (R2[i]-R1[i])/(np.linalg.norm(R2[i]-R1[i]))
     k1R2 = (R3[i]-R2[i])/(np.linalg.norm(R3[i]-R2[i]))
     k1R3 = (R4[i]-R3[i])/(np.linalg.norm(R4[i]-R3[i]))
