@@ -105,7 +105,7 @@ for i in range(N-1):
     R3k4 = R3[i] + k3R3*v*dt
     R4k4 = R4[i] + k3R4*v*dt
 
-    k4R1 = (R2k4-R1k4)/(np.linalg.norm(R2k4-R1k4)) # New even better direction at half interval
+    k4R1 = (R2k4-R1k4)/(np.linalg.norm(R2k4-R1k4)) # Direction at end of interval after "iterative process"
     k4R2 = (R3k4-R2k4)/(np.linalg.norm(R3k4-R2k4))
     k4R3 = (R4k4-R3k4)/(np.linalg.norm(R4k4-R3k4))
     k4R4 = (R1k4-R4k4)/(np.linalg.norm(R1k4-R4k4))
@@ -115,14 +115,6 @@ for i in range(N-1):
     R3[i+1] = R3[i] + dt*v*(k1R3 + k2R3*2. + k3R3*2. + k4R3)/6.0
     R4[i+1] = R4[i] + dt*v*(k1R4 + k2R4*2. + k3R4*2. + k4R4)/6.0
 
-
-def integratooor(r):
-    dr = 0
-    for i in range(N-1):
-        dx = (r[i+1]-r[i])[0]
-        dy = (r[i+1]-r[i])[1]
-        dr += np.sqrt(dx**2 + dy**2)
-    return dr
 
 def radial_velocity(r,dt):
     vr = np.zeros(len(r)) # Magnitude of v in direction of middle
@@ -138,7 +130,7 @@ def radial_velocity(r,dt):
 # Compute the radial velocity (towards the center)
 vr = radial_velocity(R1,dt)
 
-if raw_input("Hit 'enter' to skip plot") != '':
+if raw_input("Hit 'enter' to skip plot (or 'anything' then 'enter' to see plots)") != '':
     plt.plot(r1[:,0], r1[:,1],'o-')
     plt.plot(r1fe[:,0], r1fe[:,1],'o-')
     plt.plot(R1[:,0], R1[:,1],'o-')
