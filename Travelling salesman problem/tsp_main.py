@@ -521,6 +521,8 @@ if __name__ == '__main__':
 
     #---------------#
     #### Methods ####
+    # Uncomment the different solvers you want to use.   #
+    # NB: Someone requires a specific length of the path #
     #---------------#
     #BruteForceSearch(dist_data,route)
     #RandomSearch(dist_data,route,10000)
