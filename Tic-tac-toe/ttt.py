@@ -185,7 +185,6 @@ def simple_evaluate(board_position):
     else:
         not_loosing_moves = remove_bad_moves(board_position, next_moves)
         pssbl_moves = len(not_loosing_moves)
-        print not_loosing_moves
         if pssbl_moves > 1:
             y,x = not_loosing_moves[np.random.randint(pssbl_moves)]
             return y, x
@@ -197,18 +196,19 @@ def simple_evaluate(board_position):
     return y, x
 
 if __name__ == '__main__':
+    # Initiate empty board
     board = init_board()
 
-    simple_evaluate(board)
-
-    if "human vs human" == True:
+    if False:
+        "This is PvP"
         while True:
             board = one_move(board)
             if check_for_win(board):
                 break
         fancy_print(board)
+
     if True:
-        "Human vs machine"
+        "Human vs AI"
         while True:
             board = one_move_hm(board)
             if check_for_win(board):
