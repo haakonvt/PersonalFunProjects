@@ -74,46 +74,36 @@ def one_move_hh(board_position): # human vs human
 def check_for_win(board_position, verbose=True):
     b   = board_position
     win = [np.array([1,1,1]), np.array([2,2,2])]
-    xWon = False
-    oWon = True
     for i in range(3):
         if np.array_equal(b[:,i], win[0]): # columns
-            xWon = True
             if verbose:
                 print "CROSSES won!!!"
             return True, 1
         if np.array_equal(b[i,:], win[0]): # rows
-            xWon = True
             if verbose:
                 print "CROSSES won!!!"
             return True, 1
         if np.array_equal(b[:,i], win[1]): # columns
-            oWon = True
             if verbose:
                 print "NOUGHTS won!!!"
             return True, 2
         if np.array_equal(b[i,:], win[1]): # rows
-            oWon = True
             if verbose:
                 print "NOUGHTS won!!!"
             return True, 2
     if np.array_equal(np.array([b[0,0], b[1,1], b[2,2]]), win[0]):
-        xWon = True
         if verbose:
             print "CROSSES won!!!"
         return True, 1
     if np.array_equal(np.array([b[2,0], b[1,1], b[0,2]]), win[0]):
-        xWon = True
         if verbose:
             print "CROSSES won!!!"
         return True, 1
     if np.array_equal(np.array([b[0,0], b[1,1], b[2,2]]), win[1]):
-        oWon = True
         if verbose:
             print "NOUGHTS won!!!"
         return True, 2
     if np.array_equal(np.array([b[2,0], b[1,1], b[0,2]]), win[1]):
-        oWon = True
         if verbose:
             print "NOUGHTS won!!!"
         return True, 2
