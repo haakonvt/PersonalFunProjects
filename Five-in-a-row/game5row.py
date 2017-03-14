@@ -54,7 +54,7 @@ def print_board(board,n,m):
         sys.stdout.write("\n" + "-"*(m*4+4) + "\n")
         sys.stdout.flush()
 
-def evaluate_board_for_win(board,n,m,what_player,verbose=True,searching_game_tree=False):
+def evaluate_board_for_win(board,n,m,verbose=True,searching_game_tree=False):
     """
     Need to think how to make this as quick as possible..
 
@@ -172,7 +172,7 @@ def remove_bad_moves_1_step(all_moves,board,n,m):
     for move in all_moves:
         board_copy       = np.copy(board)
         board_copy[move] = 2
-        winBool, who_won_or_draw = evaluate_board_for_win(board_copy,n,m,2,verbose=False,searching_game_tree=True)
+        winBool, who_won_or_draw = evaluate_board_for_win(board_copy,n,m,verbose=False,searching_game_tree=True)
         if winBool and who_won_or_draw == 2:
             print "Found a win!"
             return [move] # If we can win, stop early and simply do this move
@@ -181,7 +181,7 @@ def remove_bad_moves_1_step(all_moves,board,n,m):
         for move2 in next_moves:
             board_copy2        = np.copy(board_copy)
             board_copy2[move2] = 1
-            winBool, who_won_or_draw = evaluate_board_for_win(board_copy2,n,m,1,verbose=False,searching_game_tree=True)
+            winBool, who_won_or_draw = evaluate_board_for_win(board_copy2,n,m,verbose=False,searching_game_tree=True)
             if winBool and who_won_or_draw == 1:
                 move_was_good = False # If it can lead to loss, not good move!
         if move_was_good:
@@ -211,6 +211,7 @@ def make_a_move_ai_v2(board,n,m,what_player):
     """
     Computer plays randomly next to another player,
     but checks for easy wins / losses.
+    Can be fooled by getting three in a row, with empty place on both sides.
 
     Possible moves: Nearest neighbour moves of already done moves
     Search depth: 1
@@ -227,14 +228,73 @@ def make_a_move_ai_v2(board,n,m,what_player):
     return board
 
 
-def make_a_move_ai_v3(board,n,m,what_player):
+def make_a_move_ai_v3(board,n,m,current_player):
     """
     Computer plays using minimax algorithm.
     Considered first moves: NN
-    """
 
-def get_best_move_minimax(board,n,m,what_player):
-    pass
+    Possible moves: Nearest neighbour moves of already done moves
+    Search depth: >= 4
+    """
+    max_depth   = 4
+    score, move = minimax(board, n, m, current_player, 0, max_depth)
+    board[move] = current_player
+    return board
+
+def minimax_score(board, n, m, depth):
+    winBool, player = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
+    if winBool and player == 2:
+        return 100 - depth
+    elif winBool and player == 1:
+        return depth - 100
+    else:
+        return 0
+
+def minimax(board, n, m, cur_player, cur_depth, max_depth):
+    """
+    Recursive search for optimal move.
+
+    Search depth: Given as input
+    """
+    winBool, player = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
+    if winBool and player == 2:     # Game is over
+        return 100 - cur_depth, None
+    elif winBool and player == 1:   # Game is over
+        return cur_depth - 100, None
+    if cur_depth == max_depth:
+        return 0, None              # Max depth is reached, and no player has won.
+
+    cur_depth += 1                  # We have to go deeper!!!
+    scores = []
+    moves  = []
+
+    # Fill list of scores, recursively
+    all_moves = generate_next_moves_nn(board, n, m)
+    for move in all_moves:
+        possible_board       = np.copy(board)
+        possible_board[move] = cur_player
+        next_player          = get_next_player(cur_player)
+        scores.append( minimax(possible_board, n, m, next_player, cur_depth, max_depth)[0] )
+        moves.append( move )
+
+    if cur_player == 2:
+        max_score_index = np.argmax(scores) # If multiple candidates, pick first (lazy)
+        move = moves[max_score_index]
+        return scores[max_score_index], move
+    else:
+        min_score_index = np.argmin(scores)
+        move = moves[min_score_index]
+        return scores[min_score_index], move
+
+def get_next_player(current_player):
+    if current_player == 1:
+        return 2
+    elif current_player == 2:
+        return 1
+    else:
+        print "Current player has illegal value", current_player
+        print "Exiting..."
+        sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -247,27 +307,30 @@ if __name__ == '__main__':
         while True:
             print_board(board, n, m)
             board = make_a_move(board,n,m, what_player+1)
-            if evaluate_board_for_win(board, n, m, what_player+1)[0]:
+            if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
             what_player = (what_player + 1) % 2 # Next players turn
 
     if True:
         """
-        This is human vs dumb as fk machine
+        This is human vs computer
         """
-        AI_choice = make_a_move_ai_v2
+        AI_choice = make_a_move_ai_v0 # This plays randomly
+        AI_choice = make_a_move_ai_v1 # Also random, but next to another player
+        AI_choice = make_a_move_ai_v2 # Plays randomly unless it can win, or avoid 1-step-loss
+        AI_choice = make_a_move_ai_v3 # This is slow, very slow, but plays very good.
         while True:
             # Human turn
             print_board(board, n, m)
             board = make_a_move(board,n,m, what_player+1)
-            if evaluate_board_for_win(board, n, m, what_player+1)[0]:
+            if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
             # AI turn
             what_player = (what_player + 1) % 2 # Next players turn
             board = AI_choice(board,n,m, what_player+1)
-            if evaluate_board_for_win(board, n, m, what_player+1)[0]:
+            if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
             what_player = (what_player + 1) % 2 # Next players turn
