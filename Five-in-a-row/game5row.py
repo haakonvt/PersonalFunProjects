@@ -1,3 +1,4 @@
+from timeit import default_timer as timer # Best timer indep. of system
 import sys
 import numpy as np
 np.random.seed(1)
@@ -126,7 +127,8 @@ def make_a_move(board,n,m,what_player):
         else:
             break
     board[y,x] = what_player
-    return board
+    move       = (y,x)
+    return board, move
 
 def generate_next_moves(board, n, m):
     moves = [] # List of lists with (y,x)
@@ -236,19 +238,106 @@ def make_a_move_ai_v3(board,n,m,current_player):
     Possible moves: Nearest neighbour moves of already done moves
     Search depth: >= 4
     """
-    max_depth   = 4
-    score, move = minimax(board, n, m, current_player, 0, max_depth)
+    sys.stdout.write("Computer is thinking...\n"); sys.stdout.flush()
+    max_depth = 4
+    t0 = timer()
+    for d in range(1,max_depth+1):
+        tt0 = timer()
+        score, move = minimax(board, n, m, current_player, 0, d)
+        print "- Search depth: %g, score: %5.2f, move: (%d,%d), time: %.4f sec" %(d,score,move[0],move[1], timer()-tt0)
+    sys.stdout.write("\rComputer chose move: (%g,%g). Total time spent: %.2f sec\n" %(move[0], move[1], timer()-t0)); sys.stdout.flush()
     board[move] = current_player
     return board
 
-def minimax_score(board, n, m, depth):
-    winBool, player = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
-    if winBool and player == 2:
-        return 100 - depth
-    elif winBool and player == 1:
-        return depth - 100
+def minimax_score(board, n, m, cur_player):
+    """
+    No player has 5 in a row. This function gives score depending on how many
+    rows of length 2, 3 and 4 it has
+    """
+    return_score = 0
+    # Start out with length 2
+    gc_board = -1*np.ones((n+3,m+3))# With ghost cells outside
+    gc_board[1:-2,1:-2] = board
+    for jj in range(n):
+        for ii in range(m):
+            j = jj+1; i = ii+1 # Fix indices to ghost cells
+            if gc_board[j,i] == gc_board[j+1,i] == cur_player: # Found two in a row (actually its a column but hey, who cares, the game is called "5-in-a-ROW")
+                if gc_board[j+2,i] == 0 and gc_board[j-1,i] == 0:
+                    return_score += 0.5         # _XX_
+                elif gc_board[j+2,i] == 0 or gc_board[j-1,i] == 0:
+                    return_score += 0.05         # OXX_ or _XXO
+            if gc_board[j,i] == gc_board[j,i+1] == cur_player: # Found two in a row
+                if gc_board[j,i+2] == 0 and gc_board[j,i-1] == 0:
+                    return_score += 0.5         # _XX_
+                elif gc_board[j,i+2] == 0 or gc_board[j,i-1] == 0:
+                    return_score += 0.05         # OXX_ or _XXO
+            if gc_board[j,i] == gc_board[j+1,i+1] == cur_player: # Found two in a row (diag)
+                if gc_board[j+2,i+2] == 0 and gc_board[j-1,i-1] == 0:
+                    return_score += 0.5         # _XX_
+                elif gc_board[j+2,i+2] == 0 or gc_board[j-1,i-1] == 0:
+                    return_score += 0.05         # OXX_ or _XXO
+            if gc_board[j,i+1] == gc_board[j+1,i] == cur_player: # Found two in a row (diag)
+                if gc_board[j-1,i+2] == 0 and gc_board[j+2,i-1] == 0:
+                    return_score += 0.5         # _XX_
+                elif gc_board[j-1,i+2] == 0 or gc_board[j+2,i-1] == 0:
+                    return_score += 0.05         # OXX_ or _XXO
+    # Next out, length 3
+    gc_board = -1*np.ones((n+4,m+4))# With ghost cells outside
+    gc_board[1:-3,1:-3] = board
+    for jj in range(n):
+        for ii in range(m):
+            j = jj+1; i = ii+1 # Fix indices to ghost cells
+            if gc_board[j,i] == gc_board[j+1,i] == gc_board[j+2,i] == cur_player:
+                if gc_board[j+3,i] == 0 and gc_board[j-1,i] == 0:
+                    return_score += 5
+                elif gc_board[j+3,i] == 0 or gc_board[j-1,i] == 0:
+                    return_score += 0.5
+            if gc_board[j,i] == gc_board[j,i+1] == gc_board[j,i+2] == cur_player:
+                if gc_board[j,i+3] == 0 and gc_board[j,i-1] == 0:
+                    return_score += 5
+                elif gc_board[j,i+3] == 0 or gc_board[j,i-1] == 0:
+                    return_score += 0.5
+            if gc_board[j,i] == gc_board[j+1,i+1] == gc_board[j+2,i+2] == cur_player:
+                if gc_board[j+3,i+3] == 0 and gc_board[j-1,i-1] == 0:
+                    return_score += 5
+                elif gc_board[j+3,i+3] == 0 or gc_board[j-1,i-1] == 0:
+                    return_score += 0.5
+            if gc_board[j,i+2] == gc_board[j+1,i+1] == gc_board[j+2,i] == cur_player:
+                if gc_board[j-1,i+3] == 0 and gc_board[j+3,i-1] == 0:
+                    return_score += 5
+                elif gc_board[j-1,i+3] == 0 or gc_board[j+3,i-1] == 0:
+                    return_score += 0.5
+    # Last out, length 4
+    gc_board = -1*np.ones((n+5,m+5))# With ghost cells outside
+    gc_board[1:-4,1:-4] = board
+    for jj in range(n):
+        for ii in range(m):
+            j = jj+1; i = ii+1 # Fix indices to ghost cells
+            if gc_board[j,i] == gc_board[j+1,i] == gc_board[j+2,i] == gc_board[j+3,i] == cur_player:
+                if gc_board[j+4,i] == 0 and gc_board[j-1,i] == 0:
+                    return_score += 50
+                elif gc_board[j+4,i] == 0 or gc_board[j-1,i] == 0:
+                    return_score += 5
+            if gc_board[j,i] == gc_board[j,i+1] == gc_board[j,i+2] == gc_board[j,i+3] == cur_player:
+                if gc_board[j,i+4] == 0 and gc_board[j,i-1] == 0:
+                    return_score += 50
+                elif gc_board[j,i+4] == 0 or gc_board[j,i-1] == 0:
+                    return_score += 5
+            if gc_board[j,i] == gc_board[j+1,i+1] == gc_board[j+2,i+2] == gc_board[j+3,i+3] == cur_player:
+                if gc_board[j+4,i+4] == 0 and gc_board[j-1,i-1] == 0:
+                    return_score += 50
+                elif gc_board[j+4,i+4] == 0 or gc_board[j-1,i-1] == 0:
+                    return_score += 5
+            if gc_board[j,i+3] == gc_board[j+1,i+2] == gc_board[j+2,i+1] == gc_board[j+3,i] == cur_player:
+                if gc_board[j-1,i+4] == 0 and gc_board[j+4,i-1] == 0:
+                    return_score += 50
+                elif gc_board[j-1,i+4] == 0 or gc_board[j+4,i-1] == 0:
+                    return_score += 5
+    # print "Leaf score:",return_score
+    if cur_player == 2:
+        return return_score
     else:
-        return 0
+        return -return_score
 
 def minimax(board, n, m, cur_player, cur_depth, max_depth):
     """
@@ -256,13 +345,14 @@ def minimax(board, n, m, cur_player, cur_depth, max_depth):
 
     Search depth: Given as input
     """
-    winBool, player = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
-    if winBool and player == 2:     # Game is over
-        return 100 - cur_depth, None
-    elif winBool and player == 1:   # Game is over
-        return cur_depth - 100, None
+    winBool, player  = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
+    additional_score = minimax_score(board,n,m,cur_player) # Not complete! Returns zero at the moment
+    if winBool and player == 2:                             # Game is over
+        return 500 + additional_score - cur_depth, None
+    elif winBool and player == 1:                           # Game is over
+        return cur_depth - 500 + additional_score, None
     if cur_depth == max_depth:
-        return 0, None              # Max depth is reached, and no player has won.
+        return additional_score, None             # Max depth is reached, and no player has won.
 
     cur_depth += 1                  # We have to go deeper!!!
     scores = []
@@ -274,8 +364,9 @@ def minimax(board, n, m, cur_player, cur_depth, max_depth):
         possible_board       = np.copy(board)
         possible_board[move] = cur_player
         next_player          = get_next_player(cur_player)
-        scores.append( minimax(possible_board, n, m, next_player, cur_depth, max_depth)[0] )
-        moves.append( move )
+        this_score, game_end = minimax(possible_board, n, m, next_player, cur_depth, max_depth)
+        scores.append( this_score )
+        moves.append(  move )
 
     if cur_player == 2:
         max_score_index = np.argmax(scores) # If multiple candidates, pick first (lazy)
@@ -314,22 +405,44 @@ if __name__ == '__main__':
 
     if True:
         """
-        This is human vs computer
+        This is human vs computer.
+
+        - Choose what strength to play against!
         """
-        AI_choice = make_a_move_ai_v0 # This plays randomly
-        AI_choice = make_a_move_ai_v1 # Also random, but next to another player
-        AI_choice = make_a_move_ai_v2 # Plays randomly unless it can win, or avoid 1-step-loss
+        # AI_choice = make_a_move_ai_v0 # This plays randomly
+        # AI_choice = make_a_move_ai_v1 # Also random, but next to another player
+        # AI_choice = make_a_move_ai_v2 # Plays randomly unless it can win, or avoid 1-step-loss
         AI_choice = make_a_move_ai_v3 # This is slow, very slow, but plays very good.
+
+        list_of_human_moves = []
+        print_board(board, n, m) # First time, before we start.
         while True:
             # Human turn
-            print_board(board, n, m)
-            board = make_a_move(board,n,m, what_player+1)
+            board, move = make_a_move(board,n,m, what_player+1)
+            list_of_human_moves.append(move)
             if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
             # AI turn
+            print_board(board, n, m)
             what_player = (what_player + 1) % 2 # Next players turn
             board = AI_choice(board,n,m, what_player+1)
+            if evaluate_board_for_win(board, n, m)[0]:
+                print_board(board, n, m)
+                break
+            print_board(board, n, m)
+            what_player = (what_player + 1) % 2 # Next players turn
+        print "List of human moves:", list_of_human_moves
+
+    if False:
+        """
+        MEANT FOR TESTING:
+        This is human vs human
+        """
+        while True:
+            print_board(board, n, m)
+            board = make_a_move(board,n,m, what_player+1)
+            minimax_score(board,n,m, what_player+1) # TODO: XXX: REMOVE THIS LINE!!!!!!!
             if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
