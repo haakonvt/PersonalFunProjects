@@ -22,8 +22,7 @@ def init_game():
             if isinstance(n, ( int, long )) and isinstance(n, ( int, long )):
                 break
     board = np.zeros((n,m))
-    # board = np.random.randint(0,3, size=(n,m))
-    starting_player = 0 # This will end up as first person (crosses)
+    starting_player = 1 # This will end up as first person (crosses)
     return board, n, m, starting_player
 
 def print_board(board,n,m):
@@ -251,7 +250,7 @@ def make_a_move_ai_v2(board,n,m,what_player):
     return board
 
 
-def make_a_move_ai_v3(board,n,m,current_player,max_depth=4,verbose=True):
+def make_a_move_ai_v3(board,n,m,current_player,max_depth=3,verbose=True):
     """
     Computer plays using minimax algorithm.
     Considered first moves: NN
@@ -267,7 +266,7 @@ def make_a_move_ai_v3(board,n,m,current_player,max_depth=4,verbose=True):
         sys.stdout.write("Computer %d is thinking...\n" %current_player)
         sys.stdout.flush()
     t0 = timer()
-    for d in range(1,max_depth+1):
+    for d in [max_depth]: #range(1,max_depth+1):
         tt0 = timer()
         score, move = minimax(board, n, m, get_next_player(current_player), 0, d, cpu_is_player2)
         if verbose:
@@ -315,10 +314,12 @@ def leaf_score_func(board, n, m, cur_player):
                 # Look for good 4-combos
                 if np.count_nonzero(fiver == opponent) == 0: # Opponent has no spots here
                     if np.count_nonzero(fiver == cp) == 4:
-                        ret_score += 4
+                        ret_score += 5
                     # Look for good 3-combos
                     if np.count_nonzero(fiver == cp) == 3:
                         ret_score += 2
+                        if fiver[0] == fiver[-1] == 0: # Player has _XXX_ (must be stopped or win)
+                            ret_score += 3
                     # Look for good 2-combos
                     if np.count_nonzero(fiver == cp) == 2:
                         ret_score += 0.1
@@ -341,21 +342,12 @@ def minimax(board, n, m, cur_player, cur_depth, max_depth, cpu_is_player2=True):
     # winBool, player  = evaluate_board_for_win(board,n,m,verbose=False,searching_game_tree=True)
     leaf_score, game_won = leaf_score_func(board,n,m,cur_player) # Not complete / should be optimized (weights)
 
-    # If game is over
-    if game_won and cur_player == 2 and     cpu_is_player2:
-        return leaf_score - cur_depth*0.1, False
-    if game_won and cur_player == 1 and not cpu_is_player2:
-        return leaf_score - cur_depth*0.1, False
-    if game_won and cur_player == 1 and     cpu_is_player2:
-        return cur_depth*0.1 - leaf_score, False
-    if game_won and cur_player == 2 and not cpu_is_player2:
-        return cur_depth*0.1 - leaf_score, False
-    # Game is not over, but max_depth is reached:
-    if cur_depth == max_depth:
+    # If game is over or return is forced based on current position
+    if game_won or cur_depth == max_depth:
         if (cpu_is_player2 and cur_player == 2) or (not cpu_is_player2 and cur_player == 1):
-            return leaf_score - max_depth*0.1, False
+            return leaf_score - cur_depth*0.1, False
         else:
-            return max_depth*0.1 - leaf_score, False
+            return cur_depth*0.1 - leaf_score, False
 
     cur_depth += 1 # We have to go deeper!!!
     scores = []
@@ -371,11 +363,11 @@ def minimax(board, n, m, cur_player, cur_depth, max_depth, cpu_is_player2=True):
         scores.append( move_score )
         moves.append(  move )
 
-    # if cur_depth == 1: # Print out possible next moves with score attained (bug fixing)
-    #     for i in range(len(scores)):
-    #         print scores[i], moves[i]
-
     if (cpu_is_player2 and next_player == 2) or (not cpu_is_player2 and next_player == 1):
+        # if cur_depth == 1: # Print out possible next moves with score attained (bug fixing)
+            # print "Player is", next_player, " (MAXimizing)"
+            # for i in range(len(scores)):
+            #     print scores[i], moves[i]
         max_score_index = np.argmax(scores) # If multiple candidates, pick first (lazy)
         move = moves[max_score_index]
         return scores[max_score_index], move
@@ -403,8 +395,8 @@ if __name__ == '__main__':
     Choose the players!
     """
     hmn_vs_hmn = False
-    hmn_vs_cpu = False
-    cpu_vs_cpu = True
+    hmn_vs_cpu = True
+    cpu_vs_cpu = False
     test_mode  = False
 
     if hmn_vs_hmn:
@@ -431,12 +423,13 @@ if __name__ == '__main__':
         AI_choice = make_a_move_ai_v3 # This is slow, very slow, but plays very good.
 
         """
-        If AI V3 is used, 'search_depth' can be specified. Higher is better.
-        - A value of 3 is good, but it can be fooled by using "multiple lines".
+        If AI V3 is used, 'search_depth' can be specified.
+        ### Must be multiple of 2. Higher is better. ###
+        - A value of 2 is good, but it can be fooled by using "multiple lines".
         - A value of 4 is tough to beat, but is starting to be really slow.
         Higher values are ridiculously slow...^^ Happy waiting!
         """
-        search_depth = 3
+        search_depth = 2
 
         # Write out what computer is thinking?
         verbose = True
@@ -471,13 +464,15 @@ if __name__ == '__main__':
         AI_choice1 = make_a_move_ai_v3
         AI_choice2 = make_a_move_ai_v3
 
+        next_player = get_next_player(what_player)
+
         while True:
-            board = AI_choice1(board,n,m, 1, max_depth = 2) # CPU 1 turn
+            board = AI_choice1(board,n,m, what_player, max_depth = 2) # CPU 1 turn
             if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
             print_board(board, n, m)
-            board = AI_choice2(board,n,m, 2, max_depth = 4) # CPU 2 turn
+            board = AI_choice2(board,n,m, next_player, max_depth = 2) # CPU 2 turn
             if evaluate_board_for_win(board, n, m)[0]:
                 print_board(board, n, m)
                 break
@@ -491,8 +486,15 @@ if __name__ == '__main__':
     if test_mode:
         while True:
             print_board(board, n, m)
-            swap_player = int(raw_input("1 for human player 1,\n2 for human 2,\n3 for cpu 1\n4 for cpu 4: "))
-            if swap_player == 1:
+            swap_player = int(raw_input("0 for remove,\n1 for human player 1,\n2 for human 2,\n3 for cpu 1\n4 for cpu 2: "))
+            if swap_player == 0:
+                inp = raw_input("Input move: ")
+                y,x = [int(some_input) for some_input in inp.split(',')]
+                board[y,x] = 0
+                if evaluate_board_for_win(board, n, m)[0]:
+                    print_board(board, n, m)
+                    break
+            elif swap_player == 1:
                 board, move = make_a_move(board,n,m, 1)
                 if evaluate_board_for_win(board, n, m)[0]:
                     print_board(board, n, m)
@@ -503,12 +505,14 @@ if __name__ == '__main__':
                     print_board(board, n, m)
                     break
             elif swap_player == 3:
-                board = make_a_move_ai_v3(board,n,m, 1)
+                d = int(raw_input("Input depth for AI:"))
+                board = make_a_move_ai_v3(board,n,m, 1, max_depth=d)
                 if evaluate_board_for_win(board, n, m)[0]:
                     print_board(board, n, m)
                     break
             else:
-                board = make_a_move_ai_v3(board,n,m, 2)
+                d = int(raw_input("Input depth for AI:"))
+                board = make_a_move_ai_v3(board,n,m, 2, max_depth=d)
                 if evaluate_board_for_win(board, n, m)[0]:
                     print_board(board, n, m)
                     break
