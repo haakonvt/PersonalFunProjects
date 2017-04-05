@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys # For enter-key
+import getpass
 import time, sys
 
 def loginNordnet(filename, password_string):
@@ -45,7 +46,7 @@ def loginNordnet(filename, password_string):
 
 
 if __name__ == '__main__':
-    password_string = ""
+    password_string = getpass.getpass('Password: ')
     if not password_string:
         print "You have to set your login password! Exiting!"
         sys.exit(0)
