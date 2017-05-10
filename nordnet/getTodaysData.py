@@ -9,21 +9,23 @@ def loginNordnet(filename, password_string):
 
     # Browser will run in a virtual display
     driver = webdriver.PhantomJS()
+    # driver = webdriver.Firefox() # This will show up in a window (good for testing)
 
     # Open the URL
     driver.get('https://www.nordnet.no/mux/login/start.html')
 
     # Set timeout
     driver.set_script_timeout(30)
+    time.sleep(2) # Wait two seconds to load
 
     sys.stdout.write("Logging in..."); sys.stdout.flush()
 
-    username = driver.find_element_by_id("input1")
+    username = driver.find_element_by_id("username")
     username.send_keys("haakonvt")
-    pw = driver.find_element_by_id("pContent")
+    pw = driver.find_element_by_id("password")
     pw.send_keys(password_string, Keys.ENTER)
 
-    time.sleep(3) # Wait three seonds to load
+    time.sleep(2) # Wait two seconds to load
 
     driver.get('https://www.nordnet.no/mux/web/depa/mindepa/depaoversikt.html')
     sys.stdout.write("\rLogging in... success!\n"); sys.stdout.flush()
@@ -48,6 +50,6 @@ def loginNordnet(filename, password_string):
 if __name__ == '__main__':
     password_string = getpass.getpass('Password: ')
     if not password_string:
-        print "You have to set your login password! Exiting!"
+        print "You have to type in your login password! Exiting!"
         sys.exit(0)
     loginNordnet("dagensData.txt", password_string)
