@@ -20,9 +20,11 @@ def loginNordnet(filename, password_string):
 
     sys.stdout.write("Logging in..."); sys.stdout.flush()
 
-    username = driver.find_element_by_id("username")
+    username = driver.find_element_by_id("input1")
+    # username = driver.find_element_by_id("username")
     username.send_keys("haakonvt")
-    pw = driver.find_element_by_id("password")
+    pw = driver.find_element_by_id("pContent")
+    # pw = driver.find_element_by_id("password")
     pw.send_keys(password_string, Keys.ENTER)
 
     time.sleep(2) # Wait two seconds to load
