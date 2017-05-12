@@ -137,7 +137,8 @@ def readNewDataFromNordnet(filename="dagensData.txt"):
             joinedNumbers = "".join(splittedLines[4:5+1])
             fundDict[allLines[i]].append(joinedNumbers)
             fundDict[allLines[i]].append(splittedLines[6])
-            fundDict[allLines[i]].append(splittedLines[7])
+            joinedNumbers = "".join(splittedLines[7:])
+            fundDict[allLines[i]].append(joinedNumbers)
     return fundDict
 
 def todaysDatestamp():
