@@ -3,7 +3,7 @@ from selenium.webdriver.common.keys import Keys # For enter-key
 import getpass
 import time, sys
 
-def loginNordnet(filename, password_string):
+def loginNordnet(filename, username_string, password_string):
     print "----------------------------------------------------"
     print "Booting virtual browser... and opening 'nordnet.no'"
 
@@ -20,11 +20,11 @@ def loginNordnet(filename, password_string):
 
     sys.stdout.write("Logging in..."); sys.stdout.flush()
 
-    username = driver.find_element_by_id("input1")
-    # username = driver.find_element_by_id("username")
-    username.send_keys("haakonvt")
-    pw = driver.find_element_by_id("pContent")
-    # pw = driver.find_element_by_id("password")
+    # username = driver.find_element_by_id("input1")
+    username = driver.find_element_by_id("username")
+    username.send_keys(username_string)
+    # pw = driver.find_element_by_id("pContent")
+    pw = driver.find_element_by_id("password")
     pw.send_keys(password_string, Keys.ENTER)
 
     time.sleep(2) # Wait two seconds to load
@@ -50,8 +50,12 @@ def loginNordnet(filename, password_string):
 
 
 if __name__ == '__main__':
+    """
+    Set username:
+    """
+    username_string = "haakonvt"
     password_string = getpass.getpass('Password: ')
     if not password_string:
         print "You have to type in your login password! Exiting!"
         sys.exit(0)
-    loginNordnet("dagensData.txt", password_string)
+    loginNordnet("dagensData.txt", username_string, password_string)
