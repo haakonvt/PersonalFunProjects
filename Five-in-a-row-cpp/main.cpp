@@ -11,10 +11,11 @@
 #include <vector>
 #include <chrono>
 #include <random>
+//#include <omp.h>
 
 using namespace std;
 
-const int BOARD_ROWS = 5;
+const int BOARD_ROWS = 6;
 const int BOARD_COLS = 8;
 const int MAX_TURNS = BOARD_ROWS * BOARD_COLS;
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
@@ -371,10 +372,79 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     }
 }
 
-double minimax_top_level(Board &board, int search_depth, bool maximizing_player, bool list_top_moves){
+double minimax(Board &board, int search_depth, bool maximizing_player, double alpha, double beta){
+    // Minimax algorithm with alpha-beta-pruning
+    bool NO_MORE_MOVES = false;
+    double valuation;
+    int best_row = -1;
+    int best_col = -1;
+    vector<Move> move_list = board.get_move_list();
+
+    if (move_list.size() == 0) {
+        NO_MORE_MOVES = true;
+    }
+    // Check if game over (then dont search tree any further)
+    if (board.check_game_won(1)){
+        return 10000+search_depth; // Worth more to win quickly
+    }
+    if (board.check_game_won(2)){
+        return -10000-search_depth;
+    }
+
+    // Recursive search of optimal play using minimax algorithm
+    if (search_depth == 0 or NO_MORE_MOVES) {
+        return board_evaluation(board);
+    }
+    if (maximizing_player){
+        int player = 1;
+        double best_value = -INFINITY;
+
+        for (auto &i_move : move_list){ // move in move_list
+            Board node = board;
+            node.make_move(i_move.row, i_move.col, player);
+            valuation  = minimax(node, search_depth-1, false, alpha, beta);
+            if (valuation > best_value or best_row == -1){
+                best_value = valuation;
+                alpha      = valuation;
+                best_row   = i_move.row;
+                best_col   = i_move.col;
+            }
+            if (best_value > beta){
+                break; // Prune away!!
+            }
+        }
+        board.make_move(best_row, best_col, player);
+        return best_value;
+    }
+    else{
+        int player = 2;
+        double best_value = INFINITY;
+
+        for (auto &i_move : move_list){
+            Board node = board;
+            node.make_move(i_move.row, i_move.col, player);
+            valuation  = minimax(node, search_depth-1, true, alpha, beta);
+            if (valuation < best_value or best_row == -1){
+                best_value = valuation;
+                beta       = valuation;
+                best_row   = i_move.row;
+                best_col   = i_move.col;
+            }
+            if (best_value > beta){
+                break;
+            }
+        }
+        board.make_move(best_row, best_col, player);
+        return best_value;
+    }
+}
+
+double minimax_top_level(Board &board, int search_depth, bool maximizing_player, bool list_top_moves, bool ab_pruning){
     chrono::steady_clock::time_point begin = chrono::steady_clock::now(); // Start timer
     bool NO_MORE_MOVES = false;
     double valuation;            // Store the valuation of node
+    double alpha = -INFINITY;    // Best already explored option along path to the root for maximizer
+    double beta  = INFINITY;     // Best already explored option along path to the root for minimizer
     int best_row = -1;
     int best_col = -1;
     vector<Move> move_list = board.get_move_list(); // Get open moves
@@ -396,7 +466,12 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
         for (auto &i_move : move_list){ // move in move_list
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
-            valuation  = minimax(node, search_depth-1, false);
+            if (ab_pruning){
+                valuation  = minimax(node, search_depth-1, false, alpha, beta);
+            }
+            if (not ab_pruning){
+                valuation  = minimax(node, search_depth-1, false);
+            }
             if (valuation > best_value or best_row == -1){
                 best_value = valuation;
                 best_row = i_move.row;
@@ -424,7 +499,12 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
         for (auto &i_move : move_list){
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
-            valuation  = minimax(node, search_depth-1, true);
+            if (ab_pruning){
+                valuation  = minimax(node, search_depth-1, true, alpha, beta);
+            }
+            if (not ab_pruning){
+                valuation  = minimax(node, search_depth-1, true);
+            }
             if (valuation < best_value or best_row == -1){
                 best_value = valuation;
                 best_row = i_move.row;
@@ -447,7 +527,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
     }
 }
 
-void get_cpu_move(Board &board, int &player, int &cpu_level, bool list_top_moves){
+void get_cpu_move(Board &board, int &player, int &cpu_level, bool list_top_moves, bool ab_pruning){
     vector<Move> move_list = board.get_move_list();
     int possible_moves = (int) move_list.size(); // Casts unsigned long to int (fine, since it is a small number)
 
@@ -470,7 +550,7 @@ void get_cpu_move(Board &board, int &player, int &cpu_level, bool list_top_moves
     }
     else if (cpu_level > 0){
         // Do MINIMAX search with depth equal to cpu-level/strength/difficulty
-        minimax_top_level(board, cpu_level, false, list_top_moves);
+        minimax_top_level(board, cpu_level, false, list_top_moves, ab_pruning);
     }
 }
 
@@ -478,6 +558,7 @@ int main(int argc, const char * argv[]) {
     int turns = 0;              // Counts the number of turns
     int player = 1;             // The players are always "1" or "2"
     bool play_vs_cpu = true;    // Choose whether player 2 should be cpu or human
+    bool ab_pruning  = true;    // Choose whether to use alpha-beta-pruning
     bool list_best_moves = true;// Choose whether to print top 5 moves for cpu
     int cpu_level = 4;          // Strength of cpu: Search depth. 0 means random moves...
                                 // Strength of 4 is needed to stop "_XXX_" attacks.
@@ -488,6 +569,10 @@ int main(int argc, const char * argv[]) {
         return 0;
     }
 
+//    #pragma omp parallel num_threads(8)
+//    cout << "Hello from thread " << omp_get_thread_num() "out of total " << omp_get_num_threads()) << endl;
+//    return 0;
+
     // Lets play 5-in-a-row! :D
     while (true){
         cout << "\nTurn " << to_string(turns) << ", PLAYER " << player << endl;
@@ -496,7 +581,11 @@ int main(int argc, const char * argv[]) {
         }
 
         if (play_vs_cpu and player == 2) {
-            get_cpu_move(board, player, cpu_level, list_best_moves);  // Get a new move from the cpu
+            get_cpu_move(board,
+                         player,
+                         cpu_level,
+                         list_best_moves,
+                         ab_pruning);  // Get a new move from the cpu
         }
         else{
             get_human_move(board, player);           // Get a new move from human
