@@ -17,7 +17,6 @@ using namespace std;
 const int BOARD_ROWS = 5;
 const int BOARD_COLS = 8;
 const int MAX_TURNS = BOARD_ROWS * BOARD_COLS;
-double TIME_SPENT = 0.0;
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
 default_random_engine generator(seed);
 
@@ -37,7 +36,7 @@ public:
     void make_move(int, int, int &);
     bool legal_move(int, int);
     bool check_game_won(int);
-    
+
 private:
     string board_row;
 };
@@ -115,7 +114,7 @@ bool Board::legal_move(int move_r, int move_c){
 bool Board::check_game_won(int player){
     auto &b = arr_board; // Reference to board array
     int  &p  = player;
-    
+
     // Check most possibilities (except bottom right corner)
     for (int i=0; i<BOARD_ROWS; ++i){
         for (int j=0; j<BOARD_COLS; ++j){
@@ -154,13 +153,13 @@ void get_human_move(Board &board, int &player){
     string user_input = "";
     int move_r = 0; // Row or col
     int move_c = 0;
-    
+
     while (true){ // To check that move is valid on board
         while (true){ // Get the row index
             while (true) {
                 cout << "Choose row number: ";
                 getline(cin, user_input);
-                
+
                 // This code converts from string to number safely.
                 stringstream my_stream(user_input);
                 if (my_stream >> move_r){
@@ -177,7 +176,7 @@ void get_human_move(Board &board, int &player){
             while (true) {
                 cout << "Choose column number: ";
                 getline(cin, user_input);
-                
+
                 // This code converts from string to number safely.
                 stringstream my_stream(user_input);
                 if (my_stream >> move_c){
@@ -215,9 +214,9 @@ void weight_function(int &fiver_sum, double &valuation){
         else if (fiver_sum == 4){
             valuation += 1000;
         }
-        else{ // Game is won!
-            valuation += INFINITY;
-        }
+//        else{ // Game is won!
+//            valuation += INFINITY;
+//        }
     }
 }
 
@@ -228,14 +227,14 @@ double board_evaluation(Board &board){
     int fiver_sum;
     double valuation = 0;
     auto &b = board.arr_board; // Reference to board array
-    
+
     for (int p = 1; p < 3; ++p){ // p = player
         /* First sum up value for p1, then make negative for sum for p2. Then after p2 sum is
            done, swap sign again (done at return statement)*/
         valuation *= -1.0;
-        
+
         int np = p%2 + 1;       // ID of other player
-        
+
         // Check all 2,3 and 4 possibilities (except bottom right corner)
         for (int i=0; i<BOARD_ROWS; ++i){
             for (int j=0; j<BOARD_COLS; ++j){
@@ -272,7 +271,7 @@ double board_evaluation(Board &board){
                 }
             }
         }
-        
+
     }
     /* Return negative of board score (score is always added to total,
        so for opposing player we first swap sign --> therefore we return negative to undo this.) */
@@ -293,9 +292,9 @@ struct by_eval{
 
 void print_top_moves(vector<Move_with_eval> top_moves){
     // Sort moves by their evaluation, then print top 5 (and worst for fun)
-    
+
     std::sort(top_moves.begin(), top_moves.end(), by_eval());
-    
+
     cout << "Best cpu-moves (from best to worst):" << endl;
     int stop = 0;
     string print_nmbr = "";
@@ -320,11 +319,18 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     int best_row = -1;
     int best_col = -1;
     vector<Move> move_list = board.get_move_list();
-    
+
     if (move_list.size() == 0) {
         NO_MORE_MOVES = true;
     }
-    
+    // Check if game over (then dont search tree any further)
+    if (board.check_game_won(1)){
+        return 10000+search_depth; // Worth more to win quickly
+    }
+    if (board.check_game_won(2)){
+        return -10000-search_depth;
+    }
+
     // Recursive search of optimal play using minimax algorithm
     if (search_depth == 0 or NO_MORE_MOVES) {
         return board_evaluation(board);
@@ -332,10 +338,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     if (maximizing_player){
         int player = 1;
         double best_value = -INFINITY;
-        
-//        if (board.check_game_won(player)){ // Quit search early if game over
-//            return INFINITY;
-//        }
+
         for (auto &i_move : move_list){ // move in move_list
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
@@ -352,10 +355,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     else{
         int player = 2;
         double best_value = INFINITY;
-        
-//        if (board.check_game_won(player)){
-//            return -INFINITY;
-//        }
+
         for (auto &i_move : move_list){
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
@@ -384,7 +384,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
     if (move_list.size() == 0) {
         NO_MORE_MOVES = true;
     }
-    
+
     // Recursive search of optimal play using minimax algorithm
     if (search_depth == 0 or NO_MORE_MOVES) {
         return board_evaluation(board);
@@ -392,9 +392,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
     if (maximizing_player){
         int player = 1;
         double best_value = -INFINITY;
-//        if (board.check_game_won(player)){ // Quit search early if game over
-//            return INFINITY;
-//        }
+
         for (auto &i_move : move_list){ // move in move_list
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
@@ -422,9 +420,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
     else{
         int player = 2;
         double best_value = INFINITY;
-//        if (board.check_game_won(player)){
-//            return -INFINITY;
-//        }
+
         for (auto &i_move : move_list){
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
@@ -454,15 +450,15 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
 void get_cpu_move(Board &board, int &player, int &cpu_level, bool list_top_moves){
     vector<Move> move_list = board.get_move_list();
     int possible_moves = (int) move_list.size(); // Casts unsigned long to int (fine, since it is a small number)
-    
+
     // Do the magic selection of CPU move based on its level (difficulty)
     if (cpu_level == 0){ // IF " or possible_moves+2 > MAX_TURNS" --> computer plays random first move
         uniform_int_distribution<int> distribution(0,possible_moves); // Includes endpoints, so (1,10) can give 1 and 10
-        
+
         int random_move = distribution(generator);
         int move_r = move_list[random_move].row;
         int move_c = move_list[random_move].col;
-        
+
         if (board.legal_move(move_r,move_c)){
             cout << "CPU (player " << to_string(player) << ") made the move " << "(" << to_string(move_r) << "," << to_string(move_c) << ") (RNG)" << endl;
             board.make_move(move_r, move_c, player);
@@ -486,25 +482,23 @@ int main(int argc, const char * argv[]) {
     int cpu_level = 4;          // Strength of cpu: Search depth. 0 means random moves...
                                 // Strength of 4 is needed to stop "_XXX_" attacks.
     Board board;                // Create the game board
-    
+
     if (MAX_TURNS > 99) {       // Quit if too big board
         cout << "Board too big, maximum 99 tiles!" << endl;
         return 0;
     }
-    
+
     // Lets play 5-in-a-row! :D
     while (true){
         cout << "\nTurn " << to_string(turns) << ", PLAYER " << player << endl;
         if ((play_vs_cpu and player == 1) or not play_vs_cpu){
-            board.print_board();                         // Show the board
+            board.print_board();                     // Show the board
         }
-        
+
         if (play_vs_cpu and player == 2) {
-//            cout << "CPU MAKING MOVE." << " Player = " << player << endl;
             get_cpu_move(board, player, cpu_level, list_best_moves);  // Get a new move from the cpu
         }
         else{
-//            cout << "HMN MAKING MOVE." << " Player = " << player << endl;
             get_human_move(board, player);           // Get a new move from human
         }
         if (board.check_game_won(player)){           // Check if game over
@@ -512,7 +506,7 @@ int main(int argc, const char * argv[]) {
             cout << endl << "GAME WON BY PLAYER " << to_string(player) << endl;
             break;
         }
-        
+
         player = (player)%2 + 1;                     // Next players turn
         turns++;
         if (turns == MAX_TURNS) {
@@ -521,16 +515,3 @@ int main(int argc, const char * argv[]) {
     };
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
