@@ -11,12 +11,14 @@
 #include <vector>
 #include <chrono>
 #include <random>
-//#include <omp.h>
+#include <algorithm>
+#include <omp.h>
 
 using namespace std;
 
-const int BOARD_ROWS = 6;
-const int BOARD_COLS = 8;
+const int SET_THREAD_COUNT  = 64;
+const int BOARD_ROWS        = 8;
+const int BOARD_COLS        = 8;
 const int MAX_TURNS = BOARD_ROWS * BOARD_COLS;
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
 default_random_engine generator(seed);
@@ -85,10 +87,10 @@ void Board::print_board(){
                 symbol_to_print = " ";
             }
             else if (player_symbol == 1){
-                symbol_to_print = "X";
+                symbol_to_print = "\033[1;34mX\033[0m"; // Bold, blue color
             }
             else{
-                symbol_to_print = "O";
+                symbol_to_print = "\033[1;31mO\033[0m"; // Bold, red color
             }
             board_row += symbol_to_print + "|";
         }
@@ -198,7 +200,7 @@ void get_human_move(Board &board, int &player){
     }
 }
 
-void weight_function(int &fiver_sum, double &valuation){
+void weight_function(int &fiver_sum, float &valuation){
     /* Weight function is written out to avoid computing the power function.
        Formula for valuation is:
        valuation += pow(10, (fiver_sum-1)), for fiver_sum > 0            */
@@ -221,12 +223,12 @@ void weight_function(int &fiver_sum, double &valuation){
     }
 }
 
-double board_evaluation(Board &board){
+float board_evaluation(Board &board){
     /* Evaluates the board position for player 1 i.e.
        positive score = good for player 1
        negative score = good for player 2 */
     int fiver_sum;
-    double valuation = 0;
+    float valuation = 0;
     auto &b = board.arr_board; // Reference to board array
 
     for (int p = 1; p < 3; ++p){ // p = player
@@ -282,7 +284,7 @@ double board_evaluation(Board &board){
 
 struct Move_with_eval{
     Move move;
-    double eval;
+    float eval;
 };
 
 struct by_eval{
@@ -294,10 +296,10 @@ struct by_eval{
 void print_top_moves(vector<Move_with_eval> top_moves){
     // Sort moves by their evaluation, then print top 5 (and worst for fun)
 
-    std::sort(top_moves.begin(), top_moves.end(), by_eval());
+    sort(top_moves.begin(), top_moves.end(), by_eval());
 
     cout << "Best cpu-moves (from best to worst):" << endl;
-    int stop = 0;
+    unsigned int stop = 0;
     string print_nmbr = "";
     for (auto &i_move_eval : top_moves){
         ++stop;
@@ -314,9 +316,9 @@ void print_top_moves(vector<Move_with_eval> top_moves){
     }
 }
 
-double minimax(Board &board, int search_depth, bool maximizing_player){
+float minimax(Board &board, int search_depth, bool maximizing_player){
     bool NO_MORE_MOVES = false;
-    double valuation;
+    float valuation;
     int best_row = -1;
     int best_col = -1;
     vector<Move> move_list = board.get_move_list();
@@ -338,7 +340,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     }
     if (maximizing_player){
         int player = 1;
-        double best_value = -INFINITY;
+        float best_value = -INFINITY;
 
         for (auto &i_move : move_list){ // move in move_list
             Board node = board;
@@ -355,7 +357,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     }
     else{
         int player = 2;
-        double best_value = INFINITY;
+        float best_value = INFINITY;
 
         for (auto &i_move : move_list){
             Board node = board;
@@ -372,10 +374,10 @@ double minimax(Board &board, int search_depth, bool maximizing_player){
     }
 }
 
-double minimax(Board &board, int search_depth, bool maximizing_player, double alpha, double beta){
+float minimax(Board &board, int search_depth, bool maximizing_player, float alpha, float beta){
     // Minimax algorithm with alpha-beta-pruning
     bool NO_MORE_MOVES = false;
-    double valuation;
+    float valuation;
     int best_row = -1;
     int best_col = -1;
     vector<Move> move_list = board.get_move_list();
@@ -397,7 +399,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player, double al
     }
     if (maximizing_player){
         int player = 1;
-        double best_value = -INFINITY;
+        float best_value = -INFINITY;
 
         for (auto &i_move : move_list){ // move in move_list
             Board node = board;
@@ -418,7 +420,7 @@ double minimax(Board &board, int search_depth, bool maximizing_player, double al
     }
     else{
         int player = 2;
-        double best_value = INFINITY;
+        float best_value = INFINITY;
 
         for (auto &i_move : move_list){
             Board node = board;
@@ -439,12 +441,12 @@ double minimax(Board &board, int search_depth, bool maximizing_player, double al
     }
 }
 
-double minimax_top_level(Board &board, int search_depth, bool maximizing_player, bool list_top_moves, bool ab_pruning){
+float minimax_top_level(Board &board, int search_depth, bool maximizing_player, bool list_top_moves, bool ab_pruning){
     chrono::steady_clock::time_point begin = chrono::steady_clock::now(); // Start timer
     bool NO_MORE_MOVES = false;
-    double valuation;            // Store the valuation of node
-    double alpha = -INFINITY;    // Best already explored option along path to the root for maximizer
-    double beta  = INFINITY;     // Best already explored option along path to the root for minimizer
+    float valuation;            // Store the valuation of node
+    float alpha = -INFINITY;    // Best already explored option along path to the root for maximizer
+    float beta  = INFINITY;     // Best already explored option along path to the root for minimizer
     int best_row = -1;
     int best_col = -1;
     vector<Move> move_list = board.get_move_list(); // Get open moves
@@ -461,9 +463,14 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
     }
     if (maximizing_player){
         int player = 1;
-        double best_value = -INFINITY;
+        float best_value = -INFINITY;
 
-        for (auto &i_move : move_list){ // move in move_list
+        omp_lock_t writelock; // Create a lock for memory access
+        omp_init_lock(&writelock);
+        #pragma omp parallel for num_threads(SET_THREAD_COUNT)
+        for (unsigned int i = 0; i < move_list.size(); ++i){
+            auto i_move = move_list[i];
+        // for (auto &i_move : move_list){ // move in move_list
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
             if (ab_pruning){
@@ -472,6 +479,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
             if (not ab_pruning){
                 valuation  = minimax(node, search_depth-1, false);
             }
+            omp_set_lock(&writelock); // Lock access for more than 1 thread at the time
             if (valuation > best_value or best_row == -1){
                 best_value = valuation;
                 best_row = i_move.row;
@@ -482,21 +490,27 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
                 temp_move.eval = valuation;
                 top_moves.push_back(temp_move);
             }
+            omp_unset_lock(&writelock);
         }
+        omp_destroy_lock(&writelock);
         board.make_move(best_row, best_col, player);
         if (list_top_moves){
             print_top_moves(top_moves);
         }
-        chrono::steady_clock::time_point end= std::chrono::steady_clock::now(); // Stop timer
+        chrono::steady_clock::time_point end= chrono::steady_clock::now(); // Stop timer
         unsigned long time_in_ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
         cout << "CPU made the move " << "(" << to_string(best_row) << "," << to_string(best_col) << "), " << "with score " << best_value << ". Time [ms]: " << time_in_ms << endl;
         return best_value;
     }
     else{
         int player = 2;
-        double best_value = INFINITY;
+        float best_value = INFINITY;
 
-        for (auto &i_move : move_list){
+        omp_lock_t writelock; // Create a lock for memory access
+        omp_init_lock(&writelock);
+        #pragma omp parallel for num_threads(SET_THREAD_COUNT)
+        for (unsigned int i = 0; i < move_list.size(); ++i){
+            auto i_move = move_list[i];
             Board node = board;
             node.make_move(i_move.row, i_move.col, player);
             if (ab_pruning){
@@ -505,6 +519,7 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
             if (not ab_pruning){
                 valuation  = minimax(node, search_depth-1, true);
             }
+            omp_set_lock(&writelock); // Lock access for more than 1 thread at the time
             if (valuation < best_value or best_row == -1){
                 best_value = valuation;
                 best_row = i_move.row;
@@ -515,12 +530,14 @@ double minimax_top_level(Board &board, int search_depth, bool maximizing_player,
                 temp_move.eval = valuation;
                 top_moves.push_back(temp_move);
             }
+            omp_unset_lock(&writelock);
         }
+        omp_destroy_lock(&writelock);
         board.make_move(best_row, best_col, player);
         if (list_top_moves){
             print_top_moves(top_moves);
         }
-        chrono::steady_clock::time_point end= std::chrono::steady_clock::now(); // Stop timer
+        chrono::steady_clock::time_point end = chrono::steady_clock::now(); // Stop timer
         unsigned long time_in_ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
         cout << "CPU made the move " << "(" << to_string(best_row) << "," << to_string(best_col) << "), " << "with score " << best_value << ". Time [ms]: " << time_in_ms << endl;
         return best_value;
@@ -555,6 +572,11 @@ void get_cpu_move(Board &board, int &player, int &cpu_level, bool list_top_moves
 }
 
 int main(int argc, const char * argv[]) {
+    cout << "\033[1;31m--------------------\033[0m" << endl;
+    cout << "\033[1;31m  GAME: 5-IN-A-ROW  \033[0m" << endl;
+    cout << "\033[1;31m--------------------\033[0m" << endl;
+
+    /* Parameters and other choices */
     int turns = 0;              // Counts the number of turns
     int player = 1;             // The players are always "1" or "2"
     bool play_vs_cpu = true;    // Choose whether player 2 should be cpu or human
@@ -568,10 +590,6 @@ int main(int argc, const char * argv[]) {
         cout << "Board too big, maximum 99 tiles!" << endl;
         return 0;
     }
-
-//    #pragma omp parallel num_threads(8)
-//    cout << "Hello from thread " << omp_get_thread_num() "out of total " << omp_get_num_threads()) << endl;
-//    return 0;
 
     // Lets play 5-in-a-row! :D
     while (true){
