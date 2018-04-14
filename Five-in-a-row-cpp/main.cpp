@@ -20,8 +20,8 @@ const int SET_THREAD_COUNT  = 64;
 const int BOARD_ROWS        = 8;
 const int BOARD_COLS        = 8;
 const int MAX_TURNS = BOARD_ROWS * BOARD_COLS;
-unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-default_random_engine generator(seed);
+unsigned SEED = chrono::system_clock::now().time_since_epoch().count();
+default_random_engine generator(SEED);
 
 struct Move {
     // This will be a single move on the board

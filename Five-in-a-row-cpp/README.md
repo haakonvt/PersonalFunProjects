@@ -4,4 +4,5 @@
 3. (if on mac)`brew install gcc`
 3. `g++-7 -std=gnu++14 -fopenmp -O3 -Wall -o main.o main.cpp`
 4. `./main.o`
-5. Best of luck beating the CPU!
+5. (if above step no workyworky, do `chmod +x main.o`)
+6. Best of luck beating the CPU!
