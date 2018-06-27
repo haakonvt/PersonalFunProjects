@@ -23,8 +23,8 @@ struct Move {
     int col;
 };
 
-const int BOARD_ROWS        = 7;
-const int BOARD_COLS        = 12;
+const int BOARD_ROWS        = 10;
+const int BOARD_COLS        = 15;
 const int MAX_TURNS         = BOARD_ROWS * BOARD_COLS;
 const int SET_THREAD_COUNT  = 64;      // Number of OpenMP threads to spawn
 const int STARTING_PLAYER   = 1;       // Starting player. The players are always "1" or "2"
@@ -584,6 +584,7 @@ int main(int argc, const char * argv[]) {
     cout << "\033[1;31m--------------------\033[0m" << endl;
     cout << "\033[1;31m  GAME: 5-IN-A-ROW  \033[0m" << endl;
     cout << "\033[1;31m--------------------\033[0m" << endl;
+    chrono::steady_clock::time_point main_begin_clock = chrono::steady_clock::now(); // Start timer
 
     /* Parameters and other choices */
     int turns  = 0;              // Counts the number of turns
@@ -662,6 +663,9 @@ int main(int argc, const char * argv[]) {
             break;
         }
     };
+    chrono::steady_clock::time_point main_end_clock = chrono::steady_clock::now(); // Stop timer
+    unsigned long time_in_ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Total run time: " << time_in_ms << endl;
     return 0;
 }
 
