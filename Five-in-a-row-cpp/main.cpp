@@ -664,7 +664,7 @@ int main(int argc, const char * argv[]) {
         }
     };
     chrono::steady_clock::time_point main_end_clock = chrono::steady_clock::now(); // Stop timer
-    unsigned long time_in_ms = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    unsigned long time_in_ms = chrono::duration_cast<chrono::milliseconds>(main_end_clock - main_begin_clock).count();
     cout << "Total run time: " << time_in_ms << endl;
     return 0;
 }
