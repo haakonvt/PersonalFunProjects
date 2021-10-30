@@ -2,7 +2,9 @@ import itertools
 import math
 import sys
 import time
+from timeit import default_timer as timer
 
+import numba
 import numpy as np
 
 # GOAL: Try to find the shortest overall route between N<=24 european cities
@@ -14,6 +16,7 @@ def LoadData(file):
     return dist_array, total_number_of_cities
 
 
+@numba.njit
 def ComputeTotalDist(dist_data, route):
     n = len(route)
     path = 0.0
@@ -253,20 +256,21 @@ def HillClimberFromGreedy(dist_data, route, max_iter):
             )
 
 
+@numba.njit
 def TwoPassMetropolis(dist_data, route, max_iter, return_routes=False):
     n = len(route)
     best_route = np.zeros(n)
     best_path = ComputeTotalDist(dist_data, route)
     best_route[:] = route[:]
-    if not return_routes:
-        print("------------------------------------------")
-        print("  Method: 2-pass Metropolis")
-        print("------------------------------------------")
+    # if not return_routes:
+    #     print("------------------------------------------")
+    #     print("  Method: 2-pass Metropolis")
+    #     print("------------------------------------------")
     # print("Starting path: %.2f \t" %best_path, np.int_(route))
-    route_iter_best = np.zeros(n)
+    route_iter_best = np.zeros(n, dtype=np.int64)
     route_iter_best[:] = best_route[:]
     count = 0
-    new_route = np.zeros(n)
+    new_route = np.zeros(n, dtype=np.int64)
     count_last_iter = 0
     while count < max_iter:
         count += 1
@@ -282,10 +286,7 @@ def TwoPassMetropolis(dist_data, route, max_iter, return_routes=False):
             best_path = new_path
             best_route[:] = new_route[:]
             count_last_iter = count
-    if not return_routes:
-        print("Better path:   %.2f \t" % best_path, np.int_(best_route))
-    else:
-        return best_path, best_route, count_last_iter
+    return best_path, best_route, count_last_iter
 
 
 def ThreePassMetropolis(dist_data, route, max_iter, return_routes=False):
@@ -585,7 +586,15 @@ if __name__ == "__main__":
     # GreedySearch(dist_data,route)
     # HillClimber(dist_data,route,100)
     # HillClimberFromGreedy(dist_data,route,100)
-    # TwoPassMetropolis(dist_data,route,3500)
+    for i in range(10000):
+        np.random.shuffle(route)
+        t0 = timer()
+        best_path, best_route, _ = TwoPassMetropolis(
+            dist_data, route, 10000, return_routes=True
+        )
+        if best_path < 12300:
+            print("Better path:   %.2f \t" % best_path, np.int_(best_route))
+            print(i, round(1000 * (timer() - t0), 4), "ms")
     # ThreePassMetropolis(dist_data,route,3500)
     # HillClimberRandInit(dist_data,route,40,200)
     # MetroRandInit(dist_data,route,2,3500,400) # 2-pass
@@ -595,14 +604,14 @@ if __name__ == "__main__":
     # SimulatedAnnealing(dist_data,route,20000)
     # HillClimberMaxSlow(dist_data,route,1000)
 
-    pool_size = 20
-    max_generations = 200
-    print("Pool size, generations needed, found global optimum T/F")
-    for i in range(10):
-        gen, glob_opt_reached = GeneticAlgo2Pass(
-            dist_data, route, pool_size, max_generations, no_print=True
-        )
-        print("%d, %.3d," % (pool_size, gen))
+    # pool_size = 20
+    # max_generations = 200
+    # print("Pool size, generations needed, found global optimum T/F")
+    # for i in range(10):
+    #     gen, glob_opt_reached = GeneticAlgo2Pass(
+    #         dist_data, route, pool_size, max_generations, no_print=True
+    #     )
+    #     print("%d, %.3d," % (pool_size, gen))
 
 
 # ##########
